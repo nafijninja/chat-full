@@ -18,6 +18,13 @@ const NotificationPermission = () => {
     setPermission(notificationManager.permission);
     if (granted) {
       setShowBanner(false);
+      // Show test notification to confirm it works
+      setTimeout(() => {
+        notificationManager.showNotification("Notifications Enabled!", {
+          body: "You will now receive message notifications when away from the app.",
+          icon: '/avatar.png'
+        });
+      }, 1000);
     }
   };
 

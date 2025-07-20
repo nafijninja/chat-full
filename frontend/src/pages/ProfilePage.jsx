@@ -36,11 +36,13 @@ const ProfilePage = () => {
       const granted = await notificationManager.requestPermission();
       if (granted) {
         setNotificationsEnabled(true);
-        // Show test notification
-        notificationManager.showNotification("Notifications Enabled!", {
-          body: "You will now receive message notifications.",
-          icon: "/avatar.png"
-        });
+        // Show test notification after a delay
+        setTimeout(() => {
+          notificationManager.showNotification("Notifications Enabled!", {
+            body: "You will now receive message notifications when away from the app.",
+            icon: "/avatar.png"
+          });
+        }, 1000);
       }
     } else {
       setNotificationsEnabled(enabled);

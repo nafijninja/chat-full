@@ -2,6 +2,24 @@
 export class NotificationManager {
   constructor() {
     this.permission = Notification.permission;
+    this.isPageVisible = !document.hidden;
+    this.setupVisibilityListener();
+  }
+
+  setupVisibilityListener() {
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', () => {
+      this.isPageVisible = !document.hidden;
+    });
+
+    // Listen for focus/blur events as fallback
+    window.addEventListener('focus', () => {
+      this.isPageVisible = true;
+    });
+
+    window.addEventListener('blur', () => {
+      this.isPageVisible = false;
+    });
   }
 
   // Request notification permission
@@ -19,14 +37,26 @@ export class NotificationManager {
       return false;
     }
 
-    const permission = await Notification.requestPermission();
-    this.permission = permission;
-    return permission === 'granted';
+    try {
+      const permission = await Notification.requestPermission();
+      this.permission = permission;
+      return permission === 'granted';
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      return false;
+    }
   }
 
   // Show notification
   showNotification(title, options = {}) {
     if (!('Notification' in window) || this.permission !== 'granted') {
+      console.log('Notifications not available or not granted');
+      return null;
+    }
+
+    // Don't show notification if page is visible
+    if (this.isPageVisible) {
+      console.log('Page is visible, not showing notification');
       return null;
     }
 
@@ -36,23 +66,47 @@ export class NotificationManager {
       tag: 'chat-message',
       requireInteraction: false,
       silent: false,
+      vibrate: [200, 100, 200],
       ...options
     };
 
-    const notification = new Notification(title, defaultOptions);
+    try {
+      const notification = new Notification(title, defaultOptions);
 
-    // Auto close after 5 seconds
-    setTimeout(() => {
-      notification.close();
-    }, 5000);
+      // Handle notification click
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
 
-    return notification;
+      // Auto close after 10 seconds
+      setTimeout(() => {
+        notification.close();
+      }, 10000);
+
+      return notification;
+    } catch (error) {
+      console.error('Error showing notification:', error);
+      return null;
+    }
   }
 
   // Show message notification
-  showMessageNotification(senderName, message, senderProfilePic) {
-    const title = `New message from ${senderName}`;
-    const body = message.text || (message.image ? '📷 Image' : 'New message');
+  showMessageNotification(senderName, message, senderProfilePic, notificationSettings) {
+    const { showSenderName, showMessagePreview } = notificationSettings;
+    
+    let title = "New Message";
+    let body = "";
+
+    if (showSenderName) {
+      title = `New message from ${senderName}`;
+    }
+
+    if (showMessagePreview) {
+      body = message.text || (message.image ? '📷 Image' : 'New message');
+    } else {
+      body = showSenderName ? "You have a new message" : "New message";
+    }
     
     return this.showNotification(title, {
       body,
@@ -75,48 +129,12 @@ export class NotificationManager {
   isPermissionGranted() {
     return this.permission === 'granted';
   }
+
+  // Check if page is currently visible
+  isPageCurrentlyVisible() {
+    return this.isPageVisible;
+  }
 }
 
 // Create singleton instance
 export const notificationManager = new NotificationManager();
-
-// Page visibility detection
-export class PageVisibilityManager {
-  constructor() {
-    this.isVisible = !document.hidden;
-    this.callbacks = [];
-    
-    // Listen for visibility changes
-    document.addEventListener('visibilitychange', () => {
-      this.isVisible = !document.hidden;
-      this.callbacks.forEach(callback => callback(this.isVisible));
-    });
-
-    // Listen for focus/blur events as fallback
-    window.addEventListener('focus', () => {
-      this.isVisible = true;
-      this.callbacks.forEach(callback => callback(true));
-    });
-
-    window.addEventListener('blur', () => {
-      this.isVisible = false;
-      this.callbacks.forEach(callback => callback(false));
-    });
-  }
-
-  // Add callback for visibility changes
-  onVisibilityChange(callback) {
-    this.callbacks.push(callback);
-    return () => {
-      this.callbacks = this.callbacks.filter(cb => cb !== callback);
-    };
-  }
-
-  // Check if page is currently visible
-  isPageVisible() {
-    return this.isVisible;
-  }
-}
-
-// Create singleton instance
-export const pageVisibilityManager = new PageVisibilityManager();

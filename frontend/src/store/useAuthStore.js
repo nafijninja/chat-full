@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { notificationManager, pageVisibilityManager } from "../lib/notifications";
+import { notificationManager } from "../lib/notifications";
 import { useNotificationStore } from "./useNotificationStore";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
@@ -109,21 +109,20 @@ export const useAuthStore = create((set, get) => ({
     // Listen for new messages globally (for notifications from any user)
     socket.on("newMessage", (newMessage) => {
       const { authUser } = get();
-      const { notificationsEnabled, getNotificationContent } = useNotificationStore.getState();
+      const { notificationsEnabled, showSenderName, showMessagePreview } = useNotificationStore.getState();
       
-      // Only show notification if message is for current user, page is not visible, and notifications are enabled
+      // Only show notification if message is for current user and notifications are enabled
       if (newMessage.receiverId === authUser._id && 
-          !pageVisibilityManager.isPageVisible() && 
           notificationManager.isPermissionGranted() && 
           notificationsEnabled) {
         
-        // For global notifications, we'll show a generic notification since we don't have sender info here
-        const { title, body } = getNotificationContent("Someone", newMessage);
-        notificationManager.showNotification(title, {
-          body,
-          tag: 'new-message',
-          icon: '/avatar.png'
-        });
+        // Show notification for any new message received
+        notificationManager.showMessageNotification(
+          "Someone",
+          newMessage,
+          '/avatar.png',
+          { showSenderName, showMessagePreview }
+        );
       }
     });
   },

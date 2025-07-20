@@ -2,7 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
-import { notificationManager, pageVisibilityManager } from "../lib/notifications";
+import { notificationManager } from "../lib/notifications";
 import { useNotificationStore } from "./useNotificationStore";
 
 export const useChatStore = create((set, get) => ({
@@ -56,27 +56,19 @@ export const useChatStore = create((set, get) => ({
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
 
-      // Show notification if page is not visible and notifications are enabled
-      const { notificationsEnabled } = useNotificationStore.getState();
-      if (!pageVisibilityManager.isPageVisible() && 
-          notificationManager.isPermissionGranted() && 
-          notificationsEnabled) {
+      // Show notification for messages from selected user
+      const { notificationsEnabled, showSenderName, showMessagePreview } = useNotificationStore.getState();
+      
+      if (notificationManager.isPermissionGranted() && notificationsEnabled) {
         const { users } = get();
         const sender = users.find(user => user._id === newMessage.senderId);
         if (sender) {
-          const { getNotificationContent } = useNotificationStore.getState();
-          const { title, body } = getNotificationContent(sender.fullName, newMessage);
-          
-          notificationManager.showNotification(title, {
-            body,
-            icon: sender.profilePic || '/avatar.png',
-            tag: `message-${sender.fullName}`,
-            data: {
-              senderId: newMessage.senderId,
-              senderName: sender.fullName,
-              messageId: newMessage._id
-            }
-          });
+          notificationManager.showMessageNotification(
+            sender.fullName,
+            newMessage,
+            sender.profilePic,
+            { showSenderName, showMessagePreview }
+          );
         }
       }
 
