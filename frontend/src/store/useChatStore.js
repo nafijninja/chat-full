@@ -35,6 +35,7 @@ export const useChatStore = create((set, get) => ({
       set({ isMessagesLoading: false });
     }
   },
+
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
     try {
@@ -76,26 +77,6 @@ export const useChatStore = create((set, get) => ({
               messageId: newMessage._id
             }
           });
-        }
-      }
-
-      set({
-        messages: [...get().messages, newMessage],
-      });
-    });
-  },
-
-  unsubscribeFromMessages: () => {
-    const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
-  },
-
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
-}));
-            sender.fullName,
-            newMessage,
-            sender.profilePic
-          );
         }
       }
 
