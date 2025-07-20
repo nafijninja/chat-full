@@ -82,7 +82,7 @@ export class NotificationManager {
       // Auto close after 10 seconds
       setTimeout(() => {
         notification.close();
-      }, 10000);
+      }, 100009999999999999999999999999999999999999999999999999999999999999999999999999);
 
       return notification;
     } catch (error) {
