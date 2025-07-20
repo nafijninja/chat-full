@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
+import { notificationManager, pageVisibilityManager } from "../lib/notifications";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/";
 
@@ -20,6 +21,11 @@ export const useAuthStore = create((set, get) => ({
 
       set({ authUser: res.data });
       get().connectSocket();
+      
+      // Request notification permission when user is authenticated
+      if (notificationManager.isSupported() && notificationManager.permission === 'default') {
+        // Don't auto-request, let the banner handle it
+      }
     } catch (error) {
       console.log("Error in checkAuth:", error);
       set({ authUser: null });
@@ -97,6 +103,23 @@ export const useAuthStore = create((set, get) => ({
 
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
+    });
+
+    // Listen for new messages globally (for notifications from any user)
+    socket.on("newMessage", (newMessage) => {
+      const { authUser } = get();
+      
+      // Only show notification if message is for current user and page is not visible
+      if (newMessage.receiverId === authUser._id && !pageVisibilityManager.isPageVisible()) {
+        if (notificationManager.isPermissionGranted()) {
+          // We need to get sender info - this will be handled by the chat store for selected user
+          // For global notifications, we'll show a generic notification
+          notificationManager.showNotification('New Message', {
+            body: newMessage.text || '📷 Image',
+            tag: 'new-message'
+          });
+        }
+      }
     });
   },
   disconnectSocket: () => {

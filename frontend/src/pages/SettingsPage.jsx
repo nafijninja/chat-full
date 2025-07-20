@@ -1,6 +1,8 @@
 import { THEMES } from "../constants";
 import { useThemeStore } from "../store/useThemeStore";
-import { Send } from "lucide-react";
+import { Send, Bell, BellOff } from "lucide-react";
+import { notificationManager } from "../lib/notifications";
+import { useState, useEffect } from "react";
 
 const PREVIEW_MESSAGES = [
   { id: 1, content: "Hey! How's it going?", isSent: false },
@@ -9,10 +11,95 @@ const PREVIEW_MESSAGES = [
 
 const SettingsPage = () => {
   const { theme, setTheme } = useThemeStore();
+  const [notificationPermission, setNotificationPermission] = useState(
+    notificationManager.permission
+  );
 
+  useEffect(() => {
+    // Update permission state when it changes
+    const checkPermission = () => {
+      setNotificationPermission(notificationManager.permission);
+    };
+    
+    // Check periodically in case user changes permission in browser settings
+    const interval = setInterval(checkPermission, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleNotificationToggle = async () => {
+    if (notificationPermission !== 'granted') {
+      const granted = await notificationManager.requestPermission();
+      setNotificationPermission(notificationManager.permission);
+      
+      if (granted) {
+        // Show test notification
+        notificationManager.showNotification('Notifications Enabled!', {
+          body: 'You will now receive message notifications when away from the app.',
+          icon: '/avatar.png'
+        });
+      }
+    }
+  };
   return (
     <div className="h-screen container mx-auto px-4 pt-20 max-w-5xl">
       <div className="space-y-6">
+        {/* Notifications Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold">Notifications</h2>
+            <p className="text-sm text-base-content/70">
+              Manage your notification preferences
+            </p>
+          </div>
+
+          <div className="bg-base-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {notificationPermission === 'granted' ? (
+                  <Bell className="w-5 h-5 text-success" />
+                ) : (
+                  <BellOff className="w-5 h-5 text-base-content/60" />
+                )}
+                <div>
+                  <h3 className="font-medium">Browser Notifications</h3>
+                  <p className="text-sm text-base-content/70">
+                    {notificationPermission === 'granted'
+                      ? 'Notifications are enabled'
+                      : notificationPermission === 'denied'
+                      ? 'Notifications are blocked. Enable in browser settings.'
+                      : 'Get notified when you receive new messages'}
+                  </p>
+                </div>
+              </div>
+              
+              {notificationPermission !== 'denied' && (
+                <button
+                  onClick={handleNotificationToggle}
+                  className={`btn btn-sm ${
+                    notificationPermission === 'granted' ? 'btn-success' : 'btn-primary'
+                  }`}
+                  disabled={notificationPermission === 'granted'}
+                >
+                  {notificationPermission === 'granted' ? 'Enabled' : 'Enable'}
+                </button>
+              )}
+            </div>
+            
+            {notificationPermission === 'denied' && (
+              <div className="mt-3 p-3 bg-warning/10 rounded-lg">
+                <p className="text-sm text-warning">
+                  Notifications are blocked. To enable them:
+                  <br />
+                  1. Click the lock icon in your browser's address bar
+                  <br />
+                  2. Set notifications to "Allow"
+                  <br />
+                  3. Refresh the page
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold">Theme</h2>
           <p className="text-sm text-base-content/70">Choose a theme for your chat interface</p>

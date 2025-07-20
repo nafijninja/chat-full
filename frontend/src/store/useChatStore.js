@@ -2,6 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
+import { notificationManager, pageVisibilityManager } from "../lib/notifications";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
@@ -52,6 +53,19 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (newMessage) => {
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
+
+      // Show notification if page is not visible or user is not focused on the chat
+      if (!pageVisibilityManager.isPageVisible() && notificationManager.isPermissionGranted()) {
+        const { users } = get();
+        const sender = users.find(user => user._id === newMessage.senderId);
+        if (sender) {
+          notificationManager.showMessageNotification(
+            sender.fullName,
+            newMessage,
+            sender.profilePic
+          );
+        }
+      }
 
       set({
         messages: [...get().messages, newMessage],

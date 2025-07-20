@@ -2,18 +2,31 @@ import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
-import { Users } from "lucide-react";
+import { Users, Bell, BellOff } from "lucide-react";
+import { notificationManager } from "../lib/notifications";
 
 const Sidebar = () => {
   const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    notificationManager.isPermissionGranted()
+  );
 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
 
+  const handleToggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      const granted = await notificationManager.requestPermission();
+      setNotificationsEnabled(granted);
+    } else {
+      // Can't programmatically disable, just update state
+      setNotificationsEnabled(false);
+    }
+  };
   const filteredUsers = showOnlineOnly
     ? users.filter((user) => onlineUsers.includes(user._id))
     : users;
@@ -39,6 +52,25 @@ const Sidebar = () => {
             <span className="text-sm">Show online only</span>
           </label>
           <span className="text-xs text-zinc-500">({onlineUsers.length - 1} online)</span>
+        </div>
+        
+        {/* Notification toggle */}
+        <div className="mt-2 hidden lg:flex items-center gap-2">
+          <button
+            onClick={handleToggleNotifications}
+            className={`btn btn-xs gap-1 ${
+              notificationsEnabled ? 'btn-primary' : 'btn-ghost'
+            }`}
+          >
+            {notificationsEnabled ? (
+              <Bell className="w-3 h-3" />
+            ) : (
+              <BellOff className="w-3 h-3" />
+            )}
+            <span className="text-xs">
+              {notificationsEnabled ? 'Notifications On' : 'Enable Notifications'}
+            </span>
+          </button>
         </div>
       </div>
 
