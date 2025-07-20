@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Camera, Mail, User } from "lucide-react";
+import { Camera, Mail, User, Bell, BellOff, Eye, EyeOff } from "lucide-react";
+import { useNotificationStore } from "../store/useNotificationStore";
+import { notificationManager } from "../lib/notifications";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+  const {
+    notificationsEnabled,
+    showSenderName,
+    showMessagePreview,
+    setNotificationsEnabled,
+    setShowSenderName,
+    setShowMessagePreview,
+  } = useNotificationStore();
   const [selectedImg, setSelectedImg] = useState(null);
 
   const handleImageUpload = async (e) => {
@@ -21,6 +31,21 @@ const ProfilePage = () => {
     };
   };
 
+  const handleNotificationToggle = async (enabled) => {
+    if (enabled && !notificationManager.isPermissionGranted()) {
+      const granted = await notificationManager.requestPermission();
+      if (granted) {
+        setNotificationsEnabled(true);
+        // Show test notification
+        notificationManager.showNotification("Notifications Enabled!", {
+          body: "You will now receive message notifications.",
+          icon: "/avatar.png"
+        });
+      }
+    } else {
+      setNotificationsEnabled(enabled);
+    }
+  };
   return (
     <div className="h-screen pt-20">
       <div className="max-w-2xl mx-auto p-4 py-8">
@@ -81,6 +106,104 @@ const ProfilePage = () => {
               </div>
               <p className="px-4 py-2.5 bg-base-200 rounded-lg border">{authUser?.email}</p>
             </div>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="mt-6 bg-base-300 rounded-xl p-6">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Notification Settings
+            </h2>
+            
+            <div className="space-y-4">
+              {/* Enable/Disable Notifications */}
+              <div className="flex items-center justify-between py-3 border-b border-base-content/10">
+                <div className="flex items-center gap-3">
+                  {notificationsEnabled ? (
+                    <Bell className="w-5 h-5 text-success" />
+                  ) : (
+                    <BellOff className="w-5 h-5 text-base-content/60" />
+                  )}
+                  <div>
+                    <span className="font-medium">Allow Notifications</span>
+                    <p className="text-sm text-base-content/60">
+                      Receive notifications when you get new messages
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={notificationsEnabled}
+                  onChange={(e) => handleNotificationToggle(e.target.checked)}
+                />
+              </div>
+
+              {/* Show Sender Name */}
+              <div className="flex items-center justify-between py-3 border-b border-base-content/10">
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-primary" />
+                  <div>
+                    <span className="font-medium">Show Sender Name</span>
+                    <p className="text-sm text-base-content/60">
+                      {showSenderName 
+                        ? 'Display "New message from [Name]"' 
+                        : 'Display "New message" only'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={showSenderName}
+                  onChange={(e) => setShowSenderName(e.target.checked)}
+                  disabled={!notificationsEnabled}
+                />
+              </div>
+
+              {/* Show Message Preview */}
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  {showMessagePreview ? (
+                    <Eye className="w-5 h-5 text-primary" />
+                  ) : (
+                    <EyeOff className="w-5 h-5 text-base-content/60" />
+                  )}
+                  <div>
+                    <span className="font-medium">Preview Message</span>
+                    <p className="text-sm text-base-content/60">
+                      {showMessagePreview 
+                        ? 'Show message content in notifications' 
+                        : 'Hide message content for privacy'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={showMessagePreview}
+                  onChange={(e) => setShowMessagePreview(e.target.checked)}
+                  disabled={!notificationsEnabled}
+                />
+              </div>
+            </div>
+
+            {/* Notification Preview */}
+            {notificationsEnabled && (
+              <div className="mt-4 p-4 bg-base-200 rounded-lg">
+                <h3 className="text-sm font-medium mb-2">Notification Preview:</h3>
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {showSenderName ? "New message from John Doe" : "New message"}
+                  </div>
+                  <div className="text-base-content/70 mt-1">
+                    {showMessagePreview ? "Hey! How are you doing?" : "You have a new message"}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 bg-base-300 rounded-xl p-6">
